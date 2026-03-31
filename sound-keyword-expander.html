@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Keyword Expander — 音效關鍵字擴展器</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0e0e0f;
+  --surface: #161618;
+  --surface2: #1e1e21;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0ede8;
+  --text2: #888884;
+  --text3: #555552;
+  --accent: #c8f060;
+  --accent2: #a8d840;
+  --accent-dim: rgba(200,240,96,0.1);
+  --accent-dim2: rgba(200,240,96,0.05);
+  --red: #ff6b5b;
+  --blue: #5b9fff;
+  --amber: #ffb347;
+  --teal: #4dd9ac;
+  --pink: #f06090;
+}
+
+html { font-size: 16px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grid bg */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 3rem 2rem 6rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+header {
+  margin-bottom: 3rem;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0.5rem;
+}
+.logo-dot {
+  width: 10px; height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+.logo-text {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+h1 span { color: var(--accent); }
+.subtitle {
+  margin-top: 0.75rem;
+  font-size: 14px;
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+  font-weight: 300;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  width: fit-content;
+}
+.tab {
+  padding: 7px 18px;
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+  border-radius: 7px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  transition: all 0.15s;
+}
+.tab.active {
+  background: var(--accent);
+  color: #0e0e0f;
+  font-weight: 500;
+}
+.tab:not(.active):hover { color: var(--text); }
+
+/* Panel */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Search box */
+.search-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  transition: border-color 0.2s;
+}
+.search-wrap:focus-within { border-color: var(--accent); }
+
+.search-label {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.search-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  resize: none;
+  line-height: 1.5;
+  min-height: 52px;
+  max-height: 140px;
+}
+textarea::placeholder { color: var(--text3); }
+
+.search-btn {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #0e0e0f;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: background 0.15s, transform 0.1s;
+}
+.search-btn:hover { background: var(--accent2); }
+.search-btn:active { transform: scale(0.95); }
+.search-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; }
+
+/* Quick examples */
+.examples-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2rem;
+}
+.example-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 99px;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface);
+}
+.example-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim2);
+}
+
+/* Results */
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.results-meta {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text3);
+}
+.copy-all-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text2);
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-all-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Dimension block */
+.dim-block {
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: fadeUp 0.3s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dim-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.dim-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dim-name {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dim-zh {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text3);
+  margin-left: auto;
+}
+.dim-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: var(--surface2);
+}
+
+/* Tags */
+.kw-tag {
+  display: inline-flex;
+  flex-direction: column;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface);
+  animation: fadeUp 0.3s ease both;
+}
+.kw-tag:hover { border-color: var(--border2); background: var(--surface2); }
+.kw-tag.copied { border-color: var(--accent); background: var(--accent-dim); }
+.kw-en {
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  color: var(--text);
+  transition: color 0.15s;
+}
+.kw-zh {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text3);
+  margin-top: 2px;
+  transition: color 0.15s;
+}
+.kw-tag.copied .kw-en { color: var(--accent); }
+.kw-tag.copied .kw-zh { color: var(--accent); opacity: 0.7; }
+
+/* UCS badge */
+.ucs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid rgba(91,159,255,0.3);
+  border-radius: 5px;
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  color: var(--blue);
+  background: rgba(91,159,255,0.05);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* Browse panel */
+.ucs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.ucs-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  background: var(--surface);
+}
+.ucs-card:hover { border-color: var(--border2); }
+.ucs-card-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ucs-card-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ucs-card-name { font-size: 12px; font-weight: 600; }
+.ucs-card-zh { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.ucs-card-body { padding: 10px 12px; }
+.ucs-sub {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text3);
+  line-height: 1.8;
+}
+
+/* Favorites panel */
+.fav-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.fav-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.fav-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+}
+.fav-tag .remove {
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.fav-tag .remove:hover { color: var(--red); }
+.fav-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--accent);
+  color: #0e0e0f;
+  padding: 8px 20px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.25s;
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <span class="logo-text">UCS-based · v1.0</span>
+    </div>
+    <h1>Sound<span>FX</span><br>Keywords</h1>
+    <p class="subtitle">// 音效關鍵字擴展器 — 輸入描述，展開所有可能的搜尋詞</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('search')">搜尋 / Search</button>
+    <button class="tab" onclick="switchTab('browse')">分類瀏覽 / Browse</button>
+    <button class="tab" onclick="switchTab('fav')">收藏 / Saved</button>
+  </div>
+
+  <!-- SEARCH PANEL -->
+  <div class="panel active" id="panel-search">
+    <div class="search-wrap">
+      <div class="search-label">// 描述你想找的聲音 — 中英文皆可</div>
+      <div class="search-input-row">
+        <textarea id="query" rows="2" placeholder="例如：塑膠管落入水中、厚重的木門關上、快速飛過的箭矢..."></textarea>
+        <button class="search-btn" onclick="doNLSearch()">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="examples-row">
+      <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);align-self:center;">試試：</span>
+      <span class="example-chip" onclick="fillAndSearch('塑膠管落入水中')">塑膠管落入水中</span>
+      <span class="example-chip" onclick="fillAndSearch('厚重木門關上')">厚重木門關上</span>
+      <span class="example-chip" onclick="fillAndSearch('快速飛過的箭矢')">快速飛過的箭矢</span>
+      <span class="example-chip" onclick="fillAndSearch('腳踩在雪地上')">腳踩在雪地上</span>
+      <span class="example-chip" onclick="fillAndSearch('玻璃碎裂')">玻璃碎裂</span>
+      <span class="example-chip" onclick="fillAndSearch('電流火花')">電流火花</span>
+      <span class="example-chip" onclick="fillAndSearch('underwater bubble')">underwater bubble</span>
+      <span class="example-chip" onclick="fillAndSearch('metal clank')">metal clank</span>
+    </div>
+
+    <div id="search-results"></div>
+  </div>
+
+  <!-- BROWSE PANEL -->
+  <div class="panel" id="panel-browse">
+    <div class="ucs-grid" id="ucs-grid"></div>
+  </div>
+
+  <!-- FAVORITES PANEL -->
+  <div class="panel" id="panel-fav">
+    <div id="fav-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── UCS-based taxonomy ───────────────────────────────────────────────────────
+const UCS = [
+  {
+    id: 'AMB', name: 'Ambience', zh: '環境音', color: '#4dd9ac',
+    subs: ['Forest', 'Rain', 'Wind', 'Ocean', 'River', 'Cave', 'Urban', 'Room Tone', 'Night', 'Fire Ambience'],
+    keywords: {
+      en: ['ambience','atmosphere','room tone','environment','nature','forest','rain','wind','ocean','river','cave','urban','city','night','outdoor','indoor','background','soundscape','birds','insects'],
+      zh: ['環境音','氛圍','底噪','大自然','森林','雨','風','海浪','河流','洞穴','城市','夜晚','室外','室內','背景音','鳥叫','蟲鳴']
+    }
+  },
+  {
+    id: 'EXP', name: 'Explosion', zh: '爆炸', color: '#ff6b5b',
+    subs: ['Bomb','Grenade','Gas','Nuclear','Debris','Shockwave'],
+    keywords: {
+      en: ['explosion','boom','blast','bang','detonation','burst','bomb','grenade','dynamite','shockwave','debris','rubble','fire','nuclear','gas explosion','underwater explosion','small explosion','large explosion','rumble','tail'],
+      zh: ['爆炸','爆破','引爆','手榴彈','炸彈','衝擊波','碎片','瓦礫','核爆','氣體爆炸','水下爆炸','小爆炸','大爆炸','低鳴']
+    }
+  },
+  {
+    id: 'FOL', name: 'Foley', zh: '擬音', color: '#ffb347',
+    subs: ['Footsteps','Clothing','Props','Keys','Paper','Zipper'],
+    keywords: {
+      en: ['foley','footstep','walk','run','clothing','rustle','keys','paper','zipper','prop','movement','body','handling','pickup','put down','sit','stand','cloth','fabric','leather','creak'],
+      zh: ['擬音','腳步','走路','跑步','衣物','摩擦','鑰匙','紙','拉鍊','道具','動作','身體','拿起','放下','坐下','站起','布料','皮革','吱呀']
+    }
+  },
+  {
+    id: 'FST', name: 'Footsteps', zh: '腳步聲', color: '#c8f060',
+    subs: ['Concrete','Wood','Gravel','Grass','Metal','Sand','Snow','Mud','Carpet','Tile'],
+    keywords: {
+      en: ['footstep','walk','run','jog','sprint','stomp','creep','sneak','boots','heels','sneakers','barefoot','concrete','wood','gravel','grass','metal','sand','snow','mud','carpet','tile','puddle','stairs'],
+      zh: ['腳步','走路','跑步','慢跑','衝刺','重踩','悄悄','鬼鬼祟祟','靴子','高跟','球鞋','赤腳','混凝土','木板','碎石','草地','金屬','沙地','雪地','泥地','地毯','磁磚','水坑','樓梯']
+    }
+  },
+  {
+    id: 'HIT', name: 'Hit / Impact', zh: '打擊 / 衝擊', color: '#f06090',
+    subs: ['Punch','Kick','Melee','Body','Object','Muffled','Hard','Soft'],
+    keywords: {
+      en: ['hit','impact','punch','kick','strike','smack','slam','bash','whack','thud','crack','knock','bang','slap','clunk','collision','crash','melee','flesh','body hit','hard hit','soft hit','muffled','dull','sharp','stab','blunt'],
+      zh: ['打擊','衝擊','拳擊','踢擊','揮打','摑打','猛擊','悶擊','清脆撞擊','敲擊','碰撞','近戰','肉擊','重擊','輕擊','悶聲','銳利']
+    }
+  },
+  {
+    id: 'MAG', name: 'Magic / Sci-Fi', zh: '魔法 / 科幻', color: '#5b9fff',
+    subs: ['Fire Magic','Ice Magic','Lightning','Portal','Spell Cast','Shield','Laser','Sci-Fi UI'],
+    keywords: {
+      en: ['magic','spell','cast','enchant','arcane','mystical','shimmer','sparkle','twinkle','portal','teleport','laser','beam','energy','shield','barrier','fire magic','ice magic','lightning','thunder','dark magic','holy','sci-fi','futuristic','electric','plasma','charge'],
+      zh: ['魔法','咒語','施法','附魔','奧術','神秘','光芒','閃耀','傳送門','傳送','雷射','光束','能量','護盾','屏障','火系','冰系','閃電','雷電','暗黑','神聖','科幻','未來','電流','電漿','充能']
+    }
+  },
+  {
+    id: 'WAT', name: 'Water', zh: '水聲', color: '#4dd9ac',
+    subs: ['Splash','Drip','Pour','Underwater','Ocean','Rain','Bubble','Stream'],
+    keywords: {
+      en: ['water','splash','drip','pour','drop','bubble','stream','river','ocean','rain','underwater','submerge','plunge','plop','gurgle','trickle','flow','wave','foam','spray','mist','puddle','pool','liquid','flood','drain','sink'],
+      zh: ['水','濺水','滴水','倒水','水滴','氣泡','溪流','河流','海洋','雨','水下','沉入','撲通','咕嘟','細流','流動','海浪','泡沫','噴霧','水坑','水池','液體','洪水','排水']
+    }
+  },
+  {
+    id: 'WPN', name: 'Weapons', zh: '武器', color: '#ff6b5b',
+    subs: ['Sword','Arrow','Gun','Reload','Shell','Knife','Bow'],
+    keywords: {
+      en: ['gunshot','gunfire','shot','fire','shoot','pistol','rifle','shotgun','sniper','automatic','silenced','reload','cock','empty click','shell drop','casing','trigger','sword','blade','slash','swing','arrow','bow','knife','stab','draw','sheathe','gun','weapon','firearm','bullet','impact bullet'],
+      zh: ['槍聲','槍擊','射擊','開火','手槍','步槍','散彈槍','狙擊','消音','換彈','拉槍機','空擊','彈殼','扳機','劍','刀刃','揮砍','弓','箭矢','匕首','刺','拔刀','入鞘']
+    }
+  },
+  {
+    id: 'WHO', name: 'Whoosh / Swish', zh: '呼嘯 / 掠過', color: '#c8f060',
+    subs: ['Fast','Slow','Magical','Air','Fabric','Blade'],
+    keywords: {
+      en: ['whoosh','swoosh','swish','whiz','whizz','zip','zoom','rush','dart','streak','blur','air','wind','blast','gust','displacement','draft','sword','blade','arrow','bullet','cloth','cape','transition','pass','fly','sweep','stinger','fast','slow','heavy','light whoosh'],
+      zh: ['呼嘯','掠過','揮動','嗖嗖','飛嘯','疾速','急速','飛鏢','閃過','空氣','風聲','氣流','阻力','劍鳴','刀刃','箭矢','子彈','布料','披風','轉場','經過','掃過']
+    }
+  },
+  {
+    id: 'UI', name: 'UI / Notification', zh: '介面音效', color: '#5b9fff',
+    subs: ['Notification','Success','Error','Click','Transition','Alert'],
+    keywords: {
+      en: ['notification','alert','ping','ding','chime','beep','pop','success','complete','win','unlock','reward','level up','positive','error','fail','wrong','deny','buzz','decline','click','tap','toggle','swipe','hover','select','transition','UI','interface','game sound','achievement'],
+      zh: ['通知','提醒','提示音','叮','鐘聲','嗶聲','彈出','成功','完成','勝利','解鎖','獎勵','升級','正向','錯誤','失敗','拒絕','蜂鳴','點擊','輕觸','切換','滑動','選取','轉場','介面','遊戲音效','成就']
+    }
+  },
+  {
+    id: 'NAT', name: 'Nature / Animals', zh: '自然 / 動物', color: '#c8f060',
+    subs: ['Thunder','Wind','Fire','Animals','Birds','Insects','Earth'],
+    keywords: {
+      en: ['thunder','lightning strike','wind gust','storm','fire crackling','fire','flame','animal','creature','bird','wolf','bear','horse','insect','cricket','frog','earth','rock','gravel','leaves','branch','tree','nature'],
+      zh: ['雷聲','閃電','陣風','暴風雨','木柴燃燒','火焰','動物','生物','鳥','狼','熊','馬','昆蟲','蟋蟀','青蛙','地面','岩石','碎石','樹葉','樹枝','樹']
+    }
+  },
+  {
+    id: 'MEC', name: 'Mechanical', zh: '機械', color: '#ffb347',
+    subs: ['Engine','Gear','Motor','Industrial','Door','Lock','Switch'],
+    keywords: {
+      en: ['mechanical','machine','engine','motor','gear','industrial','factory','robot','servo','hydraulic','pneumatic','door','lock','switch','lever','button','crank','ratchet','click mechanical','clank','hum','whir','grind','metallic','metal'],
+      zh: ['機械','引擎','馬達','齒輪','工業','工廠','機器人','油壓','氣壓','門','鎖','開關','槓桿','按鈕','曲柄','棘輪','嗡嗡','轉動','研磨','金屬']
+    }
+  },
+  {
+    id: 'BRK', name: 'Break / Destroy', zh: '破壞 / 碎裂', color: '#f06090',
+    subs: ['Glass','Wood','Metal','Concrete','Ice','Plastic'],
+    keywords: {
+      en: ['break','crack','smash','shatter','crumble','collapse','destroy','glass','wood','metal','concrete','ice','plastic','ceramic','bone','wall','debris','crunch','snap','rip','tear','splinter','fracture'],
+      zh: ['破裂','碎裂','粉碎','玻璃','木頭','金屬','混凝土','冰','塑膠','陶瓷','骨頭','牆','碎片','折斷','撕裂','裂縫']
+    }
+  }
+];
+
+// ─── NL Analysis Engine ───────────────────────────────────────────────────────
+const DIMENSION_MAP = {
+  material: {
+    label: 'Material', zh: '材質', color: '#ffb347',
+    tokens: {
+      'plastic|塑膠|塑料': { en: ['plastic','hollow plastic','hard plastic','synthetic','rigid','PVC'], zh: ['塑膠','中空塑膠','硬質塑膠','合成材料','硬質','PVC'] },
+      'wood|木|木頭|木板': { en: ['wood','wooden','timber','plank','log','hardwood','softwood'], zh: ['木頭','木質','木板','原木','硬木','軟木'] },
+      'metal|金屬|鐵|鋼': { en: ['metal','metallic','steel','iron','tin','aluminum','copper','brass','chrome'], zh: ['金屬','鋼','鐵','錫','鋁','銅','黃銅','鉻'] },
+      'glass|玻璃': { en: ['glass','crystal','ceramic','porcelain'], zh: ['玻璃','水晶','陶瓷','瓷器'] },
+      'stone|石|岩|混凝土|concrete': { en: ['stone','rock','concrete','gravel','rubble','brick'], zh: ['石頭','岩石','混凝土','碎石','磚塊'] },
+      'cloth|布|織物|fabric': { en: ['cloth','fabric','textile','linen','silk','cotton','leather'], zh: ['布料','織物','亞麻','絲綢','棉花','皮革'] },
+      'ice|冰': { en: ['ice','frozen','frost','crystal ice'], zh: ['冰','結冰','霜','冰晶'] },
+      'paper|紙': { en: ['paper','cardboard','newspaper','document'], zh: ['紙','厚紙板','報紙'] },
+    }
+  },
+  action: {
+    label: 'Action', zh: '動作', color: '#f06090',
+    tokens: {
+      'fall|drop|落|掉|落下': { en: ['drop','fall','plop','impact drop','descend','tumble'], zh: ['掉落','落下','砰的一聲','墜落','滾落'] },
+      'hit|strike|打|擊|撞': { en: ['hit','impact','strike','smack','slam','bash','collision'], zh: ['打擊','衝擊','撞擊','猛擊'] },
+      'break|shatter|crack|碎|裂|打碎': { en: ['break','crack','shatter','smash','crunch','snap','fracture'], zh: ['破裂','碎裂','粉碎','折斷'] },
+      'slide|scrape|滑|刮': { en: ['slide','scrape','scratch','drag','grind','friction'], zh: ['滑動','刮擦','拖拉','研磨','摩擦'] },
+      'open|close|門|開|關': { en: ['open','close','door','creak','latch','slam door','shut'], zh: ['開門','關門','門','門軸聲','門閂','砰關門'] },
+      'roll|滾': { en: ['roll','tumble','spin','rotate'], zh: ['滾動','翻滾','旋轉'] },
+      'fly|whoosh|飛|掠過|穿過': { en: ['whoosh','fly','pass','sweep','zip','dart','rush'], zh: ['飛過','掠過','穿過','嗖嗖'] },
+    }
+  },
+  environment: {
+    label: 'Environment', zh: '環境', color: '#4dd9ac',
+    tokens: {
+      'water|水|水中|入水': { en: ['water','splash','submerge','underwater','plunge','plop','liquid','wet'], zh: ['水','濺水','沉入','水下','液體','潮濕'] },
+      'rain|雨': { en: ['rain','drizzle','downpour','raindrop','rainfall'], zh: ['雨','毛毛雨','傾盆大雨','雨滴'] },
+      'snow|雪': { en: ['snow','snowfall','blizzard','powder snow'], zh: ['雪','降雪','暴風雪','雪粉'] },
+      'fire|flame|火|火焰': { en: ['fire','flame','burning','crackle','ember','campfire'], zh: ['火','火焰','燃燒','噼啪','餘燼','篝火'] },
+      'cave|洞穴|reverb|回響': { en: ['cave','reverb','echo','cavern','tunnel','reverberant'], zh: ['洞穴','回響','迴聲','隧道','殘響'] },
+      'outdoor|室外|outdoor': { en: ['outdoor','exterior','open air','field'], zh: ['室外','戶外'] },
+      'indoor|室內|room': { en: ['indoor','interior','room','enclosed','inside'], zh: ['室內','房間','密閉空間'] },
+    }
+  },
+  size: {
+    label: 'Size / Weight', zh: '大小 / 重量', color: '#5b9fff',
+    tokens: {
+      'large|big|heavy|大|重|厚重|巨': { en: ['large','heavy','massive','deep','low','big','huge','powerful','thick'], zh: ['大型','沉重','厚重','低沉','巨大','有力'] },
+      'small|tiny|light|小|輕|細': { en: ['small','light','tiny','thin','subtle','delicate','high','soft'], zh: ['小型','輕巧','細微','纖細','高音','輕柔'] },
+      'hollow|中空|empty': { en: ['hollow','resonant','empty','tube','pipe','cylindrical'], zh: ['中空','共鳴','空的','管狀','圓柱形'] },
+    }
+  },
+  texture: {
+    label: 'Texture / Character', zh: '質感 / 特性', color: '#c8f060',
+    tokens: {
+      'sharp|crisp|清脆|銳利': { en: ['sharp','crisp','bright','attack','snap','click'], zh: ['銳利','清脆','明亮','攻擊感','啪'] },
+      'soft|muffled|soft|悶|柔': { en: ['soft','muffled','dull','low-pass','padded','cushioned'], zh: ['柔和','悶聲','低沉','有緩衝的'] },
+      'fast|quick|快速|迅速': { en: ['fast','quick','rapid','instant','short','brief','staccato'], zh: ['快速','迅速','短促','即時'] },
+      'slow|heavy|slow|緩慢|慢': { en: ['slow','heavy','long','sustained','gradual'], zh: ['緩慢','沉重','長音','持續','漸進'] },
+      'resonant|metallic|共鳴|金屬感': { en: ['resonant','metallic','ring','sustain','tone','reverb','clang'], zh: ['共鳴','金屬感','鈴聲','持音','泛音','殘響'] },
+      'dry|乾燥|anechoic': { en: ['dry','close','anechoic','direct','no reverb'], zh: ['乾燥','近距離','無殘響','直接'] },
+    }
+  }
+};
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let favorites = JSON.parse(localStorage.getItem('sfx-favorites') || '[]');
+
+// ─── NL Search ────────────────────────────────────────────────────────────────
+function analyzeInput(text) {
+  const lower = text.toLowerCase();
+  const results = {};
+
+  for (const [dimId, dim] of Object.entries(DIMENSION_MAP)) {
+    const matched = [];
+    for (const [pattern, kwds] of Object.entries(dim.tokens)) {
+      const parts = pattern.split('|');
+      if (parts.some(p => lower.includes(p))) {
+        kwds.en.forEach((en, i) => {
+          matched.push({ en, zh: kwds.zh[i] || '' });
+        });
+      }
+    }
+    if (matched.length) results[dimId] = { ...dim, matched };
+  }
+
+  // Also check UCS categories
+  const ucsMatched = [];
+  for (const cat of UCS) {
+    const allTokens = [...cat.keywords.en, ...cat.keywords.zh];
+    if (allTokens.some(t => lower.includes(t.toLowerCase()))) {
+      // Add a few signature keywords
+      const sig = cat.keywords.en.slice(0, 4).map((en, i) => ({ en, zh: cat.keywords.zh[i] || '' }));
+      ucsMatched.push(...sig);
+    }
+  }
+  if (ucsMatched.length) {
+    // dedupe
+    const seen = new Set();
+    results['ucs'] = {
+      label: 'UCS Related', zh: 'UCS 相關分類', color: '#888884',
+      matched: ucsMatched.filter(k => { if (seen.has(k.en)) return false; seen.add(k.en); return true; }).slice(0, 12)
+    };
+  }
+
+  return results;
+}
+
+function doNLSearch() {
+  const q = document.getElementById('query').value.trim();
+  if (!q) return;
+  const dims = analyzeInput(q);
+  renderResults(q, dims);
+}
+
+function fillAndSearch(text) {
+  document.getElementById('query').value = text;
+  doNLSearch();
+}
+
+function renderResults(q, dims) {
+  const el = document.getElementById('search-results');
+  if (!Object.keys(dims).length) {
+    el.innerHTML = `<div style="padding:2rem;text-align:center;font-family:'DM Mono',monospace;font-size:13px;color:var(--text3);border:1px dashed var(--border);border-radius:12px">找不到匹配的分類，試著加入更多描述詞<br><span style="color:var(--text3);font-size:11px;margin-top:4px;display:block">例如加上材質、動作、環境等描述</span></div>`;
+    return;
+  }
+
+  const allKws = Object.values(dims).flatMap(d => d.matched.map(k => k.en));
+  const unique = [...new Set(allKws)];
+
+  let html = `
+    <div class="results-header">
+      <span class="results-meta">// ${Object.keys(dims).length} 個維度 · ${unique.length} 個關鍵字</span>
+      <button class="copy-all-btn" onclick="copyText('${unique.join(', ')}')">複製全部</button>
+    </div>
+  `;
+
+  let delay = 0;
+  for (const [dimId, dim] of Object.entries(dims)) {
+    html += `
+      <div class="dim-block" style="animation-delay:${delay}ms">
+        <div class="dim-header">
+          <div class="dim-dot" style="background:${dim.color}"></div>
+          <span class="dim-name" style="color:${dim.color}">${dim.label}</span>
+          <span class="dim-zh">${dim.zh}</span>
+        </div>
+        <div class="dim-body">
+          ${dim.matched.map((k, i) => `
+            <div class="kw-tag" style="animation-delay:${delay + i * 30}ms" onclick="copyTag(this,'${k.en}')">
+              <span class="kw-en">${k.en}</span>
+              <span class="kw-zh">${k.zh}</span>
+            </div>
+            <div class="kw-tag" style="animation-delay:${delay + i * 30 + 5}ms; cursor:default; opacity:0.5; font-size:10px" onclick="addFavorite('${k.en}', this)">
+              <span class="kw-en" style="font-size:11px">＋收藏</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    delay += 80;
+  }
+
+  el.innerHTML = html;
+}
+
+// ─── UCS Browse ───────────────────────────────────────────────────────────────
+function renderBrowse() {
+  const grid = document.getElementById('ucs-grid');
+  grid.innerHTML = UCS.map(cat => `
+    <div class="ucs-card" onclick="browseCategory('${cat.id}')">
+      <div class="ucs-card-header">
+        <div class="ucs-card-dot" style="background:${cat.color}"></div>
+        <div>
+          <div class="ucs-card-name">${cat.name}</div>
+          <div class="ucs-card-zh">${cat.zh}</div>
+        </div>
+      </div>
+      <div class="ucs-card-body">
+        <div class="ucs-sub">${cat.subs.slice(0,5).join(' · ')}${cat.subs.length > 5 ? ' …' : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function browseCategory(id) {
+  const cat = UCS.find(c => c.id === id);
+  if (!cat) return;
+  switchTab('search');
+  const el = document.getElementById('search-results');
+  const allKws = cat.keywords.en;
+  el.innerHTML = `
+    <div class="results-header">
+      <span class="results-meta" style="color:${cat.color}">// ${cat.name} — ${cat.zh}</span>
+      <button class="copy-all-btn" onclick="copyText('${allKws.join(', ')}')">複製全部</button>
+    </div>
+    <div class="dim-block">
+      <div class="dim-header">
+        <div class="dim-dot" style="background:${cat.color}"></div>
+        <span class="dim-name" style="color:${cat.color}">${cat.name}</span>
+        <span class="dim-zh">${cat.zh}</span>
+        <span class="ucs-badge">UCS · ${cat.id}</span>
+      </div>
+      <div class="dim-body">
+        ${cat.keywords.en.map((en, i) => `
+          <div class="kw-tag" onclick="copyTag(this,'${en}')">
+            <span class="kw-en">${en}</span>
+            <span class="kw-zh">${cat.keywords.zh[i] || ''}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ─── Favorites ────────────────────────────────────────────────────────────────
+function addFavorite(word, btn) {
+  if (!favorites.includes(word)) {
+    favorites.push(word);
+    localStorage.setItem('sfx-favorites', JSON.stringify(favorites));
+    showToast(`已收藏 "${word}"`);
+  }
+  renderFavorites();
+}
+
+function removeFavorite(word) {
+  favorites = favorites.filter(f => f !== word);
+  localStorage.setItem('sfx-favorites', JSON.stringify(favorites));
+  renderFavorites();
+}
+
+function renderFavorites() {
+  const el = document.getElementById('fav-content');
+  if (!favorites.length) {
+    el.innerHTML = `<div class="fav-empty">// 還沒有收藏的關鍵字<br><span style="font-size:11px;margin-top:4px;display:block">點擊搜尋結果裡的「＋收藏」</span></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div style="margin-bottom:1rem;font-size:11px;font-family:'DM Mono',monospace;color:var(--text3)">// ${favorites.length} 個收藏關鍵字</div>
+    <div class="fav-list">
+      ${favorites.map(w => `
+        <div class="fav-tag">
+          <span onclick="copyText('${w}'); showToast('已複製 ${w}')" style="cursor:pointer">${w}</span>
+          <span class="remove" onclick="removeFavorite('${w}')">×</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="fav-actions">
+      <button class="copy-all-btn" onclick="copyText('${favorites.join(', ')}')">複製全部 (${favorites.length})</button>
+      <button class="copy-all-btn" onclick="if(confirm('清除所有收藏？')){favorites=[];localStorage.removeItem('sfx-favorites');renderFavorites()}">清除全部</button>
+    </div>
+  `;
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['search','browse','fav'][i] === id);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (id === 'fav') renderFavorites();
+}
+
+function copyTag(el, word) {
+  copyText(word);
+  el.classList.add('copied');
+  setTimeout(() => el.classList.remove('copied'), 1000);
+  showToast(`已複製 "${word}"`);
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._to);
+  t._to = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
+document.getElementById('query').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doNLSearch(); }
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+renderBrowse();
+</script>
+</body>
+</html>

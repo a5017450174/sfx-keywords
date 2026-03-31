@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SoundFX Keywords — 音效關鍵字擴展器</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e0e0f;
+  --surface: #161618;
+  --surface2: #1e1e21;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0ede8;
+  --text2: #a8a49e;
+  --text3: #6e6b66;
+  --accent: #c8f060;
+  --accent2: #a8d840;
+  --accent-dim: rgba(200,240,96,0.1);
+  --red: #ff6b5b;
+  --blue: #5b9fff;
+  --amber: #ffb347;
+  --teal: #4dd9ac;
+  --pink: #f06090;
+}
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  display: flex; flex-direction: column;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+
+/* Top bar */
+.topbar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 14px;
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface); position: relative; z-index: 2;
+}
+.logo-dot {
+  width: 9px; height: 9px; background: var(--accent);
+  border-radius: 50%; flex-shrink: 0;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.75)} }
+.logo-title { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.logo-title span { color: var(--accent); }
+.logo-sub { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); letter-spacing: .08em; margin-top: 1px; }
+.topbar-tabs { margin-left: auto; display: flex; gap: 5px; }
+.ttab {
+  padding: 5px 13px; border: 1px solid var(--border2); border-radius: 99px;
+  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2);
+  background: transparent; cursor: pointer; transition: all .15s;
+}
+.ttab.active { background: var(--accent); border-color: var(--accent); color: #0e0e0f; font-weight: 500; }
+.ttab:not(.active):hover { color: var(--text); }
+
+/* Main split */
+.main { flex: 1; display: flex; overflow: hidden; position: relative; z-index: 1; }
+
+/* Left */
+.left { width: 40%; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.left-scroll { flex: 1; overflow-y: auto; padding: 14px; }
+.left-scroll::-webkit-scrollbar { width: 3px; }
+.left-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Search */
+.sw {
+  border: 1px solid var(--border2); border-radius: 11px;
+  padding: 11px 13px; margin-bottom: 13px;
+  background: var(--surface); transition: border-color .2s;
+}
+.sw:focus-within { border-color: var(--accent); }
+.sw-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.sw-row { display: flex; gap: 7px; align-items: flex-end; }
+textarea {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px;
+  resize: none; line-height: 1.5; min-height: 42px; max-height: 100px;
+}
+textarea::placeholder { color: var(--text3); }
+.sbtn {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px; border: none;
+  background: var(--accent); color: #0e0e0f; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, transform .1s;
+}
+.sbtn:hover { background: var(--accent2); }
+.sbtn:active { transform: scale(.95); }
+.sbtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; }
+
+/* Examples */
+.ex-l { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); margin-bottom: 6px; }
+.ex-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 18px; }
+.ex-chip {
+  padding: 3px 9px; border: 1px solid var(--border2); border-radius: 99px;
+  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2);
+  cursor: pointer; background: var(--surface); transition: all .15s;
+}
+.ex-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Section label */
+.sec { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 7px; }
+
+/* Category list */
+.cat-list { display: flex; flex-direction: column; gap: 3px; }
+.cat-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  cursor: pointer; background: var(--surface); transition: all .15s;
+}
+.cat-item:hover { border-color: var(--border2); background: var(--surface2); }
+.cat-item.active { border-color: var(--accent); background: rgba(200,240,96,.06); }
+.cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.cat-info { flex: 1; min-width: 0; }
+.cat-en { font-size: 12px; font-weight: 600; }
+.cat-zh { font-size: 10px; font-family: 'DM Mono', monospace; color: #8a8680; margin-top: 1px; }
+.cat-arr { font-size: 11px; color: var(--text3); }
+
+/* Favorites */
+.fav-empty { padding: 1.25rem; text-align: center; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); border: 1px dashed var(--border); border-radius: 9px; }
+.fav-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.fav-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--surface); font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: all .15s;
+}
+.fav-chip:hover { border-color: var(--border2); }
+.fav-chip .rm { color: var(--text3); font-size: 13px; line-height: 1; transition: color .15s; }
+.fav-chip .rm:hover { color: var(--red); }
+.fav-btns { display: flex; gap: 5px; margin-top: 9px; }
+.sm-btn {
+  padding: 4px 11px; border: 1px solid var(--border2); border-radius: 6px;
+  background: transparent; color: var(--text2); font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all .15s;
+}
+.sm-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Right */
+.right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.rh {
+  flex-shrink: 0; padding: 12px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); gap: 12px;
+}
+.rh-meta { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); flex: 1; }
+.rh-meta b { color: var(--text2); font-weight: 400; }
+.copy-all {
+  padding: 5px 13px; border: 1px solid var(--border2); border-radius: 7px;
+  background: transparent; color: var(--text2); font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all .15s; flex-shrink: 0;
+}
+.copy-all:hover { border-color: var(--accent); color: var(--accent); }
+.rb { flex: 1; overflow-y: auto; padding: 14px 18px; }
+.rb::-webkit-scrollbar { width: 3px; }
+.rb::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Empty state */
+.empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text3); font-family: 'DM Mono', monospace; font-size: 12px; text-align: center; }
+.empty .big { font-size: 28px; opacity: .25; }
+
+/* Dim block */
+.db { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; animation: fu .22s ease both; }
+@keyframes fu { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+.dh { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.dd { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.den { font-size: 10px; font-family: 'DM Mono', monospace; font-weight: 500; letter-spacing: .07em; text-transform: uppercase; }
+.dzh { font-size: 10px; font-family: 'DM Mono', monospace; color: #8a8680; margin-left: auto; }
+.dbody { padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 5px; background: var(--surface2); }
+
+/* Keyword tag */
+.kt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 9px; border: 1px solid var(--border); border-radius: 7px;
+  cursor: pointer; background: var(--surface); transition: all .15s; animation: fu .22s ease both;
+}
+.kt:hover { border-color: var(--border2); background: var(--surface2); }
+.kt.copied { border-color: var(--accent); background: var(--accent-dim); }
+.kt-texts { display: flex; flex-direction: column; }
+.kt-en { font-size: 12px; font-family: 'DM Mono', monospace; font-weight: 500; color: var(--text); transition: color .15s; }
+.kt-zh { font-size: 10px; font-family: 'DM Mono', monospace; color: #8a8680; margin-top: 1px; transition: color .15s; }
+.kt.copied .kt-en { color: var(--accent); }
+.kt.copied .kt-zh { color: var(--accent); opacity: .7; }
+.kt-star {
+  font-size: 12px; line-height: 1; color: var(--text3);
+  opacity: 0; transition: opacity .15s, color .15s; flex-shrink: 0;
+  padding-left: 5px; border-left: 1px solid var(--border); margin-left: 1px;
+}
+.kt:hover .kt-star { opacity: 1; }
+.kt-star:hover { color: var(--accent) !important; }
+.kt-star.on { color: var(--accent); opacity: 1; }
+
+/* UCS badge */
+.ubadge { display: inline-flex; align-items: center; padding: 2px 6px; border: 1px solid rgba(91,159,255,.3); border-radius: 4px; font-size: 10px; font-family: 'DM Mono', monospace; color: var(--blue); background: rgba(91,159,255,.05); }
+
+/* AI mode toggle */
+.ai-toggle {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--border2); border-radius: 99px;
+  background: var(--surface2); margin-left: 12px;
+}
+.ai-toggle-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2); white-space: nowrap; }
+.ai-pills { display: flex; gap: 3px; }
+.ai-pill {
+  padding: 4px 11px; border-radius: 99px; border: none;
+  font-size: 11px; font-family: 'DM Mono', monospace;
+  cursor: pointer; transition: all .15s; background: transparent; color: var(--text3);
+}
+.ai-pill.active-local { background: var(--accent); color: #0e0e0f; font-weight: 500; }
+.ai-pill.active-ai { background: var(--blue); color: #fff; font-weight: 500; }
+.ai-pill:not(.active-local):not(.active-ai):hover { color: var(--text); }
+
+/* API key input row */
+.apikey-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 11px; border: 1px solid rgba(91,159,255,.25);
+  border-radius: 10px; background: rgba(91,159,255,.05);
+  margin-bottom: 13px;
+}
+.apikey-row input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px;
+}
+.apikey-row input::placeholder { color: var(--text3); }
+.apikey-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--blue); white-space: nowrap; flex-shrink: 0; }
+.apikey-save { padding: 4px 10px; border: 1px solid rgba(91,159,255,.4); border-radius: 6px; background: transparent; color: var(--blue); font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all .15s; flex-shrink: 0; }
+.apikey-save:hover { background: rgba(91,159,255,.15); }
+
+/* AI loading */
+.ai-loading {
+  display: flex; align-items: center; gap: 10px;
+  padding: 1.5rem; color: var(--text3); font-family: 'DM Mono', monospace; font-size: 12px;
+}
+.ai-spinner {
+  width: 16px; height: 16px; border: 2px solid var(--border2);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Help overlay */
+.help-btn {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--border2); background: transparent;
+  color: var(--text3); font-size: 12px; font-family: 'DM Mono', monospace;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0; margin-left: 6px;
+}
+.help-btn:hover { color: var(--text); border-color: var(--text2); }
+.help-overlay {
+  display: none;
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  z-index: 200; align-items: center; justify-content: center;
+}
+.help-overlay.open { display: flex; }
+.help-box {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 16px; padding: 28px; max-width: 520px; width: 90%;
+  position: relative; animation: fu .2s ease;
+}
+.help-close {
+  position: absolute; top: 14px; right: 16px;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border2); background: transparent;
+  color: var(--text2); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.help-close:hover { background: var(--surface2); color: var(--text); }
+.help-title {
+  font-size: 16px; font-weight: 700; margin-bottom: 6px;
+}
+.help-title span { color: var(--blue); }
+.help-sub {
+  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3);
+  margin-bottom: 20px;
+}
+.help-section { margin-bottom: 18px; }
+.help-section-title {
+  font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3);
+  letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px;
+}
+.help-platform {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 11px 13px; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--surface2); margin-bottom: 6px;
+}
+.help-platform-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0; font-family: 'DM Mono', monospace; font-weight: 700;
+}
+.help-platform-info { flex: 1; min-width: 0; }
+.help-platform-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.help-platform-path {
+  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); line-height: 1.5;
+}
+.help-platform-path a { color: var(--blue); text-decoration: none; }
+.help-platform-path a:hover { text-decoration: underline; }
+.help-note {
+  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3);
+  padding: 10px 12px; border: 1px solid rgba(255,179,71,.2);
+  border-radius: 8px; background: rgba(255,179,71,.05); line-height: 1.6;
+}
+.help-note b { color: var(--amber); font-weight: 500; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 1.25rem; left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  background: var(--accent); color: #0e0e0f;
+  padding: 6px 16px; border-radius: 99px; font-size: 11px;
+  font-family: 'DM Mono', monospace; font-weight: 500;
+  opacity: 0; transition: all .18s; pointer-events: none; z-index: 100; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo-dot"></div>
+  <div>
+    <div class="logo-title">Sound<span>FX</span> Keywords</div>
+    <div class="logo-sub">UCS-BASED · 音效關鍵字擴展器 · v1.2</div>
+  </div>
+  <div class="ai-toggle">
+    <span class="ai-toggle-label">模式</span>
+    <div class="ai-pills">
+      <button class="ai-pill active-local" id="pill-local" onclick="setAIMode('local')">本地 Local</button>
+      <button class="ai-pill" id="pill-ai" onclick="setAIMode('ai')">AI 模式</button>
+    </div>
+    <button class="help-btn" onclick="document.getElementById('help-overlay').classList.add('open')" title="怎麼取得 API Key？">?</button>
+  </div>
+  <div class="topbar-tabs">
+    <button class="ttab active" onclick="switchMode('search')">搜尋 Search</button>
+    <button class="ttab" onclick="switchMode('browse')">分類 Browse</button>
+    <button class="ttab" onclick="switchMode('fav')">收藏 Saved</button>
+  </div>
+</div>
+
+<!-- Help overlay -->
+<div class="help-overlay" id="help-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="help-box">
+    <button class="help-close" onclick="document.getElementById('help-overlay').classList.remove('open')">×</button>
+    <div class="help-title">取得你的 <span>API Key</span></div>
+    <div class="help-sub">// AI 模式需要一組 API Key — 以下是各平台的取得方式</div>
+
+    <div class="help-section">
+      <div class="help-section-title">// 支援的平台</div>
+
+      <div class="help-platform">
+        <div class="help-platform-icon" style="background:rgba(200,240,96,.1);color:#c8f060">C</div>
+        <div class="help-platform-info">
+          <div class="help-platform-name">Anthropic Claude（本工具使用）</div>
+          <div class="help-platform-path">
+            登入 → <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a><br>
+            點「Create Key」→ 複製以 <b style="color:#c8f060">sk-ant-</b> 開頭的字串
+          </div>
+        </div>
+      </div>
+
+      <div class="help-platform">
+        <div class="help-platform-icon" style="background:rgba(116,195,101,.1);color:#74c365">G</div>
+        <div class="help-platform-info">
+          <div class="help-platform-name">Google Gemini</div>
+          <div class="help-platform-path">
+            登入 → <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a><br>
+            點「Create API key」→ 複製以 <b style="color:#74c365">AIza</b> 開頭的字串
+          </div>
+        </div>
+      </div>
+
+      <div class="help-platform">
+        <div class="help-platform-icon" style="background:rgba(16,163,127,.1);color:#10a37f">O</div>
+        <div class="help-platform-info">
+          <div class="help-platform-name">OpenAI (ChatGPT)</div>
+          <div class="help-platform-path">
+            登入 → <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a><br>
+            點「Create new secret key」→ 複製以 <b style="color:#10a37f">sk-</b> 開頭的字串
+          </div>
+        </div>
+      </div>
+
+      <div class="help-platform">
+        <div class="help-platform-icon" style="background:rgba(91,159,255,.1);color:#5b9fff">M</div>
+        <div class="help-platform-info">
+          <div class="help-platform-name">Mistral AI</div>
+          <div class="help-platform-path">
+            登入 → <a href="https://console.mistral.ai/api-keys" target="_blank">console.mistral.ai/api-keys</a><br>
+            點「Create new key」→ 複製產生的字串
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-note">
+      <b>⚠ 注意：</b>API Key 就像密碼，不要分享給別人。<br>
+      本工具的 Key 只存在你的瀏覽器本地（localStorage），不會傳送到任何伺服器。<br>
+      使用 API 會依照各平台費率計費，Anthropic 新帳號通常有免費額度。
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="left"><div class="left-scroll" id="left-body"></div></div>
+  <div class="right">
+    <div class="rh" id="rh">
+      <span class="rh-meta">// 輸入描述或選擇分類，結果即時出現在這裡</span>
+    </div>
+    <div class="rb" id="rb">
+      <div class="empty">
+        <div class="big">◎</div>
+        <div>搜尋或點選左側分類</div>
+        <div style="font-size:10px;margin-top:3px;opacity:.5">關鍵字結果會即時顯示在這裡</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const UCS = [
+  { id:'AMB', name:'Ambience', zh:'環境音 / 氛圍', color:'#4dd9ac',
+    subs:['Forest 森林','Rain 雨聲','Wind 風聲','Ocean 海洋','River 河流','Cave 洞穴','Urban 城市','Room Tone 室內底噪'],
+    keywords:{ en:['ambience','atmosphere','room tone','environment','nature','forest','rain','wind','ocean','river','cave','urban','city','night','outdoor','indoor','background','soundscape','birds','insects'], zh:['環境音','氛圍','底噪','大自然','森林','雨','風','海浪','河流','洞穴','城市','夜晚','室外','室內','背景音','鳥叫','蟲鳴'] }
+  },
+  { id:'EXP', name:'Explosion', zh:'爆炸 / 爆破', color:'#ff6b5b',
+    subs:['Bomb 炸彈','Grenade 手榴彈','Gas 氣體爆炸','Nuclear 核爆','Debris 碎片','Shockwave 衝擊波'],
+    keywords:{ en:['explosion','boom','blast','bang','detonation','burst','bomb','grenade','dynamite','shockwave','debris','rubble','fire','nuclear','gas explosion','underwater explosion','small explosion','large explosion','rumble','tail'], zh:['爆炸','爆破','引爆','轟鳴','爆裂','炸彈','手榴彈','炸藥','衝擊波','碎片','瓦礫','核爆','水下爆炸','大爆炸','殘響尾音'] }
+  },
+  { id:'FOL', name:'Foley', zh:'擬音 / 道具音', color:'#ffb347',
+    subs:['Footsteps 腳步','Clothing 衣物','Props 道具','Keys 鑰匙','Paper 紙','Zipper 拉鍊'],
+    keywords:{ en:['foley','footstep','walk','run','clothing','rustle','keys','paper','zipper','prop','movement','body','handling','pickup','put down','sit','stand','cloth','fabric','leather','creak'], zh:['擬音','腳步','走路','跑步','衣物','摩擦聲','鑰匙','紙','拉鍊','道具','動作','拿起','放下','坐下','站起','布料','皮革','吱呀聲'] }
+  },
+  { id:'FST', name:'Footsteps', zh:'腳步聲', color:'#c8f060',
+    subs:['Concrete 混凝土','Wood 木板','Gravel 碎石','Grass 草地','Metal 金屬','Sand 沙地','Snow 雪地','Mud 泥地'],
+    keywords:{ en:['footstep','walk','run','jog','sprint','stomp','creep','sneak','boots','heels','sneakers','barefoot','concrete','wood','gravel','grass','metal','sand','snow','mud','carpet','tile','puddle','stairs'], zh:['腳步','走路','跑步','慢跑','衝刺','重踩','悄悄移動','靴子','高跟鞋','球鞋','赤腳','混凝土','木板','碎石','草地','金屬','沙地','雪地','泥地','地毯','水坑','樓梯'] }
+  },
+  { id:'HIT', name:'Hit / Impact', zh:'打擊 / 衝擊', color:'#f06090',
+    subs:['Punch 拳擊','Kick 踢擊','Melee 近戰','Body 肉體','Object 物件','Muffled 悶聲'],
+    keywords:{ en:['hit','impact','punch','kick','strike','smack','slam','bash','whack','thud','crack','knock','bang','slap','clunk','collision','crash','melee','flesh','body hit','hard hit','soft hit','muffled','dull','sharp','stab','blunt'], zh:['打擊','衝擊','拳擊','踢擊','揮打','摑打','猛擊','悶擊','清脆碰撞','敲擊','碰撞','近戰','肉擊','重擊','輕擊','悶聲','鈍擊'] }
+  },
+  { id:'MAG', name:'Magic / Sci-Fi', zh:'魔法 / 科幻', color:'#5b9fff',
+    subs:['Fire Magic 火系','Ice Magic 冰系','Lightning 閃電','Portal 傳送門','Spell Cast 施法','Shield 護盾','Laser 雷射'],
+    keywords:{ en:['magic','spell','cast','enchant','arcane','mystical','shimmer','sparkle','twinkle','portal','teleport','laser','beam','energy','shield','barrier','fire magic','ice magic','lightning','thunder','dark magic','holy','sci-fi','futuristic','electric','plasma','charge'], zh:['魔法','咒語','施法','附魔','奧術','神秘','光芒閃爍','傳送門','傳送','雷射','光束','能量','護盾','火系魔法','冰系魔法','閃電','暗黑魔法','神聖','科幻','電流'] }
+  },
+  { id:'WAT', name:'Water', zh:'水聲 / 液體', color:'#4dd9ac',
+    subs:['Splash 濺水','Drip 滴水','Pour 倒水','Underwater 水下','Ocean 海浪','Rain 雨','Bubble 氣泡','Stream 溪流'],
+    keywords:{ en:['water','splash','drip','pour','drop','bubble','stream','river','ocean','rain','underwater','submerge','plunge','plop','gurgle','trickle','flow','wave','foam','spray','mist','puddle','pool','liquid','flood','drain','sink'], zh:['水','濺水','滴水','倒水','水滴','氣泡','溪流','海浪','雨','水下','沉入','撲通','咕嘟','細流','流動','泡沫','噴霧','水坑','液體','洪水'] }
+  },
+  { id:'WPN', name:'Weapons', zh:'武器 / 兵器', color:'#ff6b5b',
+    subs:['Sword 劍','Arrow 箭矢','Gun 槍','Reload 換彈','Knife 刀','Bow 弓'],
+    keywords:{ en:['gunshot','gunfire','shot','fire','shoot','pistol','rifle','shotgun','sniper','automatic','silenced','reload','cock','empty click','shell drop','casing','trigger','sword','blade','slash','swing','arrow','bow','knife','stab','draw','sheathe','gun','weapon','firearm','bullet'], zh:['槍聲','槍擊','射擊','開火','手槍','步槍','散彈槍','狙擊','消音器','換彈','拉槍機','空擊','彈殼','扳機','劍','刀刃','揮砍','弓','箭矢','匕首','刺入','拔刀','入鞘'] }
+  },
+  { id:'WHO', name:'Whoosh / Swish', zh:'呼嘯 / 掠過', color:'#c8f060',
+    subs:['Fast 快速','Slow 緩慢','Magical 魔法','Air 空氣','Fabric 布料','Blade 刀刃'],
+    keywords:{ en:['whoosh','swoosh','swish','whiz','whizz','zip','zoom','rush','dart','streak','blur','air','wind','blast','gust','displacement','draft','sword whoosh','blade','arrow','bullet','cloth','cape','transition','pass','fly','sweep','stinger','heavy whoosh','light whoosh'], zh:['呼嘯','掠過','揮動','嗖嗖','飛嘯','疾速','急速','空氣','風聲','氣流','阻力','劍鳴','刀刃','箭矢','布料','披風','轉場','掃過','重型呼嘯','輕型呼嘯'] }
+  },
+  { id:'UI', name:'UI / Notification', zh:'介面音效 / 通知', color:'#5b9fff',
+    subs:['Notification 通知','Success 成功','Error 錯誤','Click 點擊','Transition 轉場','Alert 警告'],
+    keywords:{ en:['notification','alert','ping','ding','chime','beep','pop','success','complete','win','unlock','reward','level up','positive','error','fail','wrong','deny','buzz','decline','click','tap','toggle','swipe','hover','select','transition','UI','interface','game sound','achievement'], zh:['通知','提醒','提示音','叮聲','鐘聲','嗶聲','彈出音','成功','完成','勝利','解鎖','獎勵','升級','錯誤','失敗','拒絕','蜂鳴','點擊','切換','轉場','介面音','遊戲音效'] }
+  },
+  { id:'NAT', name:'Nature / Animals', zh:'自然 / 動物', color:'#c8f060',
+    subs:['Thunder 雷聲','Wind 風','Fire 火','Animals 動物','Birds 鳥鳴','Insects 昆蟲'],
+    keywords:{ en:['thunder','lightning strike','wind gust','storm','fire crackling','fire','flame','animal','creature','bird','wolf','bear','horse','insect','cricket','frog','earth','rock','gravel','leaves','branch','tree','nature'], zh:['雷聲','閃電','陣風','暴風雨','木柴燃燒','火焰','動物','鳥鳴','狼嚎','馬嘶','昆蟲','蟋蟀','青蛙','岩石','樹葉','樹枝'] }
+  },
+  { id:'MEC', name:'Mechanical', zh:'機械 / 工業', color:'#ffb347',
+    subs:['Engine 引擎','Gear 齒輪','Motor 馬達','Industrial 工業','Door 門','Lock 鎖','Switch 開關'],
+    keywords:{ en:['mechanical','machine','engine','motor','gear','industrial','factory','robot','servo','hydraulic','pneumatic','door','lock','switch','lever','button','crank','ratchet','click mechanical','clank','hum','whir','grind','metallic','metal'], zh:['機械','引擎','馬達','齒輪','工業','工廠','機器人','油壓','氣壓','門','鎖','開關','按鈕','棘輪','嗡嗡聲','轉動','研磨','金屬感'] }
+  },
+  { id:'BRK', name:'Break / Destroy', zh:'破壞 / 碎裂', color:'#f06090',
+    subs:['Glass 玻璃','Wood 木頭','Metal 金屬','Concrete 混凝土','Ice 冰','Plastic 塑膠'],
+    keywords:{ en:['break','crack','smash','shatter','crumble','collapse','destroy','glass','wood','metal','concrete','ice','plastic','ceramic','bone','wall','debris','crunch','snap','rip','tear','splinter','fracture'], zh:['破裂','碎裂','粉碎','崩塌','破壞','玻璃碎','木頭斷','金屬裂','混凝土','冰裂','塑膠碎','陶瓷','骨頭','碎片','折斷','撕裂'] }
+  }
+];
+
+const DIMS = {
+  material:{ label:'Material', zh:'材質', color:'#ffb347', tokens:{
+    'plastic|塑膠|塑料':{ en:['plastic','hollow plastic','hard plastic','synthetic','rigid','PVC'], zh:['塑膠','中空塑膠','硬質塑膠','合成材料','硬質','PVC'] },
+    'wood|木|木頭|木板':{ en:['wood','wooden','timber','plank','log','hardwood'], zh:['木頭','木質','木板','原木','硬木'] },
+    'metal|金屬|鐵|鋼':{ en:['metal','metallic','steel','iron','aluminum','copper','brass'], zh:['金屬','鋼','鐵','鋁','銅','黃銅'] },
+    'glass|玻璃':{ en:['glass','crystal','ceramic','porcelain'], zh:['玻璃','水晶','陶瓷','瓷器'] },
+    'stone|石|岩|混凝土|concrete':{ en:['stone','rock','concrete','gravel','rubble','brick'], zh:['石頭','岩石','混凝土','碎石','磚塊'] },
+    'cloth|布|織物|fabric':{ en:['cloth','fabric','textile','silk','cotton','leather'], zh:['布料','織物','絲綢','棉花','皮革'] },
+    'ice|冰':{ en:['ice','frozen','frost','crystal ice'], zh:['冰','結冰','霜','冰晶'] },
+    'paper|紙':{ en:['paper','cardboard','newspaper'], zh:['紙','厚紙板','報紙'] },
+  }},
+  action:{ label:'Action', zh:'動作', color:'#f06090', tokens:{
+    'fall|drop|落|掉|落下':{ en:['drop','fall','plop','impact drop','descend','tumble'], zh:['掉落','落下','撲通','墜落','滾落'] },
+    'hit|strike|打|擊|撞':{ en:['hit','impact','strike','smack','slam','bash','collision'], zh:['打擊','衝擊','撞擊','猛擊'] },
+    'break|shatter|crack|碎|裂':{ en:['break','crack','shatter','smash','crunch','snap','fracture'], zh:['破裂','碎裂','粉碎','折斷'] },
+    'slide|scrape|滑|刮':{ en:['slide','scrape','scratch','drag','grind','friction'], zh:['滑動','刮擦','拖拉','研磨','摩擦'] },
+    'open|close|門|開|關':{ en:['open','close','door','creak','latch','slam door','shut'], zh:['開門','關門','門軸聲','門閂','砰關門'] },
+    'roll|滾':{ en:['roll','tumble','spin','rotate'], zh:['滾動','翻滾','旋轉'] },
+    'fly|whoosh|飛|掠過|穿過':{ en:['whoosh','fly','pass','sweep','zip','dart','rush'], zh:['飛過','掠過','嗖嗖'] },
+    'slash|swing|揮|砍|劈':{ en:['slash','swing','swipe','chop','cleave','cut'], zh:['揮砍','揮動','劈砍','切割'] },
+    'shoot|release|射|發射':{ en:['shoot','release','fire','launch','bowstring'], zh:['射擊','發射','弓弦彈射'] },
+  }},
+  weapon:{ label:'Weapon Type', zh:'武器類型', color:'#ff6b5b', tokens:{
+    'sword|劍|刀|武士刀|katana|sabre':{ en:['sword','blade','sabre','katana','longsword','broadsword','rapier'], zh:['劍','刀刃','武士刀','長劍','闊劍','西洋劍'] },
+    'arrow|bow|弓|箭|弩':{ en:['arrow','bow','bowstring','crossbow','quiver','fletching'], zh:['箭矢','弓','弓弦','弩','箭袋'] },
+    'axe|斧|戰斧':{ en:['axe','hatchet','battle axe','cleave'], zh:['斧頭','小斧','戰斧'] },
+    'spear|lance|矛|長矛':{ en:['spear','lance','pike','thrust','javelin'], zh:['矛','長矛','刺擊','標槍'] },
+    'knife|dagger|匕首|小刀':{ en:['knife','dagger','stiletto','blade small'], zh:['小刀','匕首','細刃'] },
+    'gun|pistol|rifle|槍|手槍|步槍':{ en:['gunshot','pistol','rifle','shotgun','firearm','bullet','bang'], zh:['槍聲','手槍','步槍','散彈槍','子彈'] },
+  }},
+  environment:{ label:'Environment', zh:'環境 / 空間', color:'#4dd9ac', tokens:{
+    'water|水|水中|入水':{ en:['water','splash','submerge','underwater','plunge','plop','liquid','wet'], zh:['水','濺水','沉入','水下','液體','潮濕'] },
+    'rain|雨':{ en:['rain','drizzle','downpour','raindrop','rainfall'], zh:['雨','毛毛雨','傾盆大雨','雨滴'] },
+    'snow|雪':{ en:['snow','snowfall','blizzard','powder snow'], zh:['雪','降雪','暴風雪','雪粉'] },
+    'fire|flame|火|火焰':{ en:['fire','flame','burning','crackle','ember','campfire'], zh:['火','火焰','燃燒','噼啪','餘燼','篝火'] },
+    'cave|洞穴|reverb|回響':{ en:['cave','reverb','echo','cavern','tunnel','reverberant'], zh:['洞穴','回響','迴聲','隧道','殘響'] },
+    'outdoor|室外':{ en:['outdoor','exterior','open air','field'], zh:['室外','戶外'] },
+    'indoor|室內|room':{ en:['indoor','interior','room','enclosed','inside'], zh:['室內','房間','密閉空間'] },
+  }},
+  size:{ label:'Size / Weight', zh:'大小 / 重量', color:'#5b9fff', tokens:{
+    'large|big|heavy|大|重|厚重|巨':{ en:['large','heavy','massive','deep','low','huge','powerful','thick'], zh:['大型','沉重','厚重','低沉','巨大','有力'] },
+    'small|tiny|light|小|輕|細':{ en:['small','light','tiny','thin','subtle','delicate','soft'], zh:['小型','輕巧','細微','纖細','輕柔'] },
+    'hollow|中空|empty':{ en:['hollow','resonant','empty','tube','pipe','cylindrical'], zh:['中空','共鳴','空的','管狀'] },
+  }},
+  texture:{ label:'Texture', zh:'質感 / 音色', color:'#c8f060', tokens:{
+    'sharp|crisp|清脆|銳利':{ en:['sharp','crisp','bright','attack','snap','click'], zh:['銳利','清脆','明亮','強攻擊感'] },
+    'soft|muffled|悶|柔':{ en:['soft','muffled','dull','padded','cushioned'], zh:['柔和','悶聲','低沉','有緩衝'] },
+    'fast|quick|快速|迅速':{ en:['fast','quick','rapid','instant','short','staccato'], zh:['快速','迅速','短促'] },
+    'slow|緩慢|慢':{ en:['slow','heavy','long','sustained','gradual'], zh:['緩慢','沉重','長音','持續'] },
+    'resonant|metallic|共鳴|金屬感':{ en:['resonant','metallic','ring','sustain','tone','clang'], zh:['共鳴','金屬感','鈴聲','持音','泛音'] },
+    'dry|乾燥':{ en:['dry','close','anechoic','direct','no reverb'], zh:['乾燥','近距離','無殘響'] },
+  }}
+};
+
+let mode = 'search';
+let aiMode = 'local'; // 'local' | 'ai'
+let apiKey = localStorage.getItem('sfx-apikey') || '';
+let favorites = JSON.parse(localStorage.getItem('sfx-fav2') || '[]');
+
+function setAIMode(m) {
+  aiMode = m;
+  document.getElementById('pill-local').className = 'ai-pill' + (m==='local' ? ' active-local' : '');
+  document.getElementById('pill-ai').className = 'ai-pill' + (m==='ai' ? ' active-ai' : '');
+  if (mode === 'search') renderLeft();
+}
+
+async function doAISearch(q) {
+  const rb = document.getElementById('rb');
+  const rh = document.getElementById('rh');
+  rh.innerHTML = `<span class="rh-meta">// AI 分析中：<b>${q}</b></span>`;
+  rb.innerHTML = `<div class="ai-loading"><div class="ai-spinner"></div>AI 正在分析聲音描述，展開關鍵字中…</div>`;
+
+  const key = apiKey || localStorage.getItem('sfx-apikey') || '';
+  if (!key) {
+    rb.innerHTML = `<div class="empty"><div class="big">🔑</div><div>請先輸入 API Key</div><div style="font-size:10px;margin-top:3px;opacity:.5">在搜尋框上方填入 Anthropic API Key</div></div>`;
+    return;
+  }
+
+  const systemPrompt = `你是一個專業的音效設計師和音效庫管理專家，熟悉 UCS (Universal Category System) 分類標準。
+當使用者描述一個聲音，你需要分析這個聲音並輸出可能的搜尋關鍵字。
+
+請嚴格以 JSON 格式回覆，不要有任何其他文字：
+{
+  "dimensions": [
+    {
+      "label": "維度英文名稱",
+      "zh": "維度中文名稱",
+      "color": "#hex色碼（從這些選：#ffb347 #f06090 #4dd9ac #5b9fff #c8f060 #ff6b5b）",
+      "keywords": [
+        { "en": "english keyword", "zh": "中文說明" }
+      ]
+    }
+  ]
+}
+
+分析維度包括：Material（材質）、Action（動作）、Environment（環境）、Weapon Type（若有武器）、Size/Weight（大小重量）、Texture（音色質感）、UCS Category（相關UCS分類）。
+每個維度給 5-10 個關鍵字。只輸出有意義的維度，不要強行填入所有維度。
+關鍵字要實際可用於音效庫搜尋（Soundly、SoundSnap、Freesound 等）。`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `請分析這個聲音描述並給出搜尋關鍵字：${q}` }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(`${data.error.type}: ${data.error.message}`);
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(text);
+    const dims = {};
+    parsed.dimensions.forEach((d, i) => {
+      dims[`ai_${i}`] = { label: d.label, zh: d.zh, color: d.color, matched: d.keywords };
+    });
+    const all = [...new Set(parsed.dimensions.flatMap(d => d.keywords.map(k => k.en)))];
+    showRight(dims, `// AI 分析：<b>${q}</b> · ${all.length} 個關鍵字`, all);
+  } catch(e) {
+    rb.innerHTML = `<div class="empty"><div class="big">！</div><div>AI 回應錯誤</div><div style="font-size:11px;margin-top:6px;opacity:.7;font-family:'DM Mono',monospace;max-width:320px;line-height:1.6">${e.message}</div></div>`;
+  }
+}
+
+function analyze(text) {
+  const lower = text.toLowerCase();
+  const out = {};
+  for (const [id, dim] of Object.entries(DIMS)) {
+    const matched = [];
+    for (const [pat, kwds] of Object.entries(dim.tokens)) {
+      if (pat.split('|').some(p => lower.includes(p)))
+        kwds.en.forEach((en,i) => matched.push({ en, zh: kwds.zh[i]||'' }));
+    }
+    if (matched.length) out[id] = { ...dim, matched };
+  }
+  const ucsHits = []; const seen = new Set();
+  for (const cat of UCS) {
+    if ([...cat.keywords.en,...cat.keywords.zh].some(t => lower.includes(t.toLowerCase())))
+      cat.keywords.en.slice(0,5).forEach((en,i) => { if(!seen.has(en)){seen.add(en);ucsHits.push({en,zh:cat.keywords.zh[i]||''});} });
+  }
+  if (ucsHits.length) out['_ucs'] = { label:'UCS Related', zh:'UCS 相關', color:'#666662', matched: ucsHits.slice(0,14) };
+  return out;
+}
+
+function tagHTML(k, delay) {
+  const s = favorites.includes(k.en);
+  const e = k.en.replace(/'/g,"\\'");
+  return `<div class="kt" style="animation-delay:${delay}ms" onclick="copyTag(this,'${e}')">
+    <div class="kt-texts"><span class="kt-en">${k.en}</span>${k.zh?`<span class="kt-zh">${k.zh}</span>`:''}</div>
+    <span class="kt-star ${s?'on':''}" title="${s?'取消收藏':'收藏'}" onclick="event.stopPropagation();toggleFav(this,'${e}')">${s?'★':'☆'}</span>
+  </div>`;
+}
+
+function showRight(dims, meta, copyKws) {
+  const rh = document.getElementById('rh');
+  const rb = document.getElementById('rb');
+  let rhHTML = `<span class="rh-meta">${meta}</span>`;
+  if (copyKws && copyKws.length) {
+    const esc = copyKws.map(k=>k.replace(/'/g,"\\'")).join(', ');
+    rhHTML += `<button class="copy-all" onclick="copyText('${esc}')">複製全部 (${copyKws.length})</button>`;
+  }
+  rh.innerHTML = rhHTML;
+  if (!Object.keys(dims).length) {
+    rb.innerHTML = `<div class="empty"><div class="big">？</div><div>找不到相關分類</div><div style="font-size:10px;margin-top:3px;opacity:.5">試著加入材質、動作或環境描述</div></div>`;
+    return;
+  }
+  let html = ''; let delay = 0;
+  for (const [,dim] of Object.entries(dims)) {
+    html += `<div class="db" style="animation-delay:${delay}ms">
+      <div class="dh">
+        <div class="dd" style="background:${dim.color}"></div>
+        <span class="den" style="color:${dim.color}">${dim.label}</span>
+        <span class="dzh">${dim.zh}</span>
+      </div>
+      <div class="dbody">${dim.matched.map((k,i)=>tagHTML(k,delay+i*20)).join('')}</div>
+    </div>`;
+    delay += 60;
+  }
+  rb.innerHTML = html;
+}
+
+function doSearch() {
+  const q = document.getElementById('q').value.trim();
+  if (!q) return;
+  if (aiMode === 'ai') { doAISearch(q); return; }
+  const dims = analyze(q);
+  const all = [...new Set(Object.values(dims).flatMap(d=>d.matched.map(k=>k.en)))];
+  showRight(dims, `// 搜尋：<b>${q}</b> · ${all.length} 個關鍵字`, all);
+}
+
+function fillSearch(t) { document.getElementById('q').value = t; doSearch(); }
+
+function browseCategory(id) {
+  document.querySelectorAll('.cat-item').forEach(el=>el.classList.toggle('active',el.dataset.id===id));
+  const cat = UCS.find(c=>c.id===id); if(!cat) return;
+  const dims = { _c:{ label:cat.name, zh:cat.zh, color:cat.color, matched:cat.keywords.en.map((en,i)=>({en,zh:cat.keywords.zh[i]||''})) }};
+  showRight(dims, `// <span style="color:${cat.color}">${cat.name}</span> · ${cat.zh} &nbsp;<span class="ubadge">UCS·${cat.id}</span>`, cat.keywords.en);
+}
+
+function switchMode(m) {
+  mode = m;
+  document.querySelectorAll('.ttab').forEach((t,i)=>t.classList.toggle('active',['search','browse','fav'][i]===m));
+  renderLeft();
+}
+
+function renderLeft() {
+  const el = document.getElementById('left-body');
+  if (mode==='search') {
+    const keyRow = aiMode==='ai' ? `
+      <div class="apikey-row">
+        <span class="apikey-label">API KEY</span>
+        <input id="apikey-input" type="password" placeholder="sk-ant-..." value="${apiKey}" />
+        <button class="apikey-save" onclick="apiKey=document.getElementById('apikey-input').value;localStorage.setItem('sfx-apikey',apiKey);showToast('API Key 已儲存')">儲存</button>
+      </div>` : '';
+    el.innerHTML = `
+      ${keyRow}
+      <div class="sw">
+        <div class="sw-label">// ${aiMode==='ai' ? '⚡ AI 模式 — 任何描述都能處理' : '描述你想找的聲音 — 中英文皆可'}</div>
+        <div class="sw-row">
+          <textarea id="q" rows="2" placeholder="${aiMode==='ai' ? '像心臟跳動但更空洞的感覺、遠方傳來的戰鬥聲…' : '塑膠管落入水中、快速飛過的劍…'}"></textarea>
+          <button class="sbtn" onclick="doSearch()"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg></button>
+        </div>
+      </div>
+      <div class="ex-l">// 快速範例</div>
+      <div class="ex-row">${['塑膠管落入水中','厚重木門關上','快速飛過的劍','腳踩雪地','玻璃碎裂','電流火花','underwater bubble','metal clank'].map(t=>`<span class="ex-chip" onclick="fillSearch('${t}')">${t}</span>`).join('')}</div>
+      <div class="sec">// UCS 分類快選</div>
+      <div class="cat-list">${UCS.map(cat=>`<div class="cat-item" data-id="${cat.id}" onclick="browseCategory('${cat.id}')">
+        <div class="cat-dot" style="background:${cat.color}"></div>
+        <div class="cat-info"><div class="cat-en">${cat.name}</div><div class="cat-zh">${cat.zh}</div></div>
+        <div class="cat-arr">›</div>
+      </div>`).join('')}</div>`;
+    setTimeout(()=>{
+      const q = document.getElementById('q');
+      if(q) q.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSearch();} });
+    },0);
+  } else if (mode==='browse') {
+    el.innerHTML = `<div class="sec">// UCS 分類瀏覽</div><div class="cat-list">${UCS.map(cat=>`<div class="cat-item" data-id="${cat.id}" onclick="browseCategory('${cat.id}')">
+      <div class="cat-dot" style="background:${cat.color}"></div>
+      <div class="cat-info"><div class="cat-en">${cat.name}</div><div class="cat-zh">${cat.zh}</div></div>
+      <div class="cat-arr">›</div>
+    </div>`).join('')}</div>`;
+  } else {
+    renderFavLeft();
+  }
+}
+
+function toggleFav(el, word) {
+  if (favorites.includes(word)) {
+    favorites = favorites.filter(f=>f!==word);
+    el.textContent='☆'; el.classList.remove('on'); el.title='收藏';
+    showToast(`已移除 "${word}"`);
+  } else {
+    favorites.push(word);
+    el.textContent='★'; el.classList.add('on'); el.title='取消收藏';
+    showToast(`已收藏 "${word}"`);
+  }
+  localStorage.setItem('sfx-fav2', JSON.stringify(favorites));
+  if (mode==='fav') renderFavLeft();
+}
+
+function renderFavLeft() {
+  const el = document.getElementById('left-body');
+  if (!favorites.length) {
+    el.innerHTML = `<div class="sec">// 收藏清單</div><div class="fav-empty">還沒有收藏的關鍵字<br><span style="font-size:10px;margin-top:4px;display:block">搜尋後 hover 標籤按 ☆</span></div>`;
+    showRight({}, '// 收藏清單 · 空', null);
+    return;
+  }
+  el.innerHTML = `<div class="sec">// 收藏清單 · ${favorites.length} 個</div>
+    <div class="fav-chips">${favorites.map(w=>`<div class="fav-chip"><span onclick="copyText('${w.replace(/'/g,"\\'")}');showToast('已複製 ${w}')">${w}</span><span class="rm" onclick="removeFav('${w.replace(/'/g,"\\'")}')">×</span></div>`).join('')}</div>
+    <div class="fav-btns">
+      <button class="sm-btn" onclick="copyText('${favorites.join(', ')}');showToast('已複製全部')">複製全部</button>
+      <button class="sm-btn" onclick="if(confirm('清除所有收藏？')){favorites=[];localStorage.removeItem('sfx-fav2');renderFavLeft()}">清除</button>
+    </div>`;
+  const dims = { _f:{ label:'Saved Keywords', zh:'收藏關鍵字', color:'#c8f060', matched:favorites.map(f=>({en:f,zh:''})) }};
+  showRight(dims, `// 收藏 · <b>${favorites.length} 個關鍵字</b>`, favorites);
+}
+
+function removeFav(word) {
+  favorites = favorites.filter(f=>f!==word);
+  localStorage.setItem('sfx-fav2', JSON.stringify(favorites));
+  renderFavLeft();
+}
+
+function copyTag(el, word) {
+  copyText(word); el.classList.add('copied');
+  setTimeout(()=>el.classList.remove('copied'),900);
+  showToast(`已複製 "${word}"`);
+}
+function copyText(text) {
+  navigator.clipboard.writeText(text).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+renderLeft();
+</script>
+</body>
+</html>
